@@ -32,25 +32,25 @@ A lehetséges argumentumokért lásd az *Argumentumok* részt.
 	kiíródnak, ha nincs megadott '-mute'. Ha ez a fájl létezik, akkor felül fog íródni. Például ha egy 'log.txt' szövegfájlba kérjük a logot, ami a JAR mappájába kerül, akkor 
 	'-logfile=log.txt' az argumentum. Egy speciális értéke az 'auto', ilyenkor a log fájl neve automatikusan kerül generálásra. Alapértéke (ha nem adjuk meg) az, hogy nem lesz log fájl készítve.
 
-#Példák
+## Példák
 
 Bemutatok néhány példát a használatra. Ezeknél persze jóval többféleképpen lehet kombinálni 
 az argumentumokat.
 
-\1. Minden argumentum alapértéken:
+1: Minden argumentum alapértéken:
 
 *java -jar PdfTextExtractor.jar*
 
-\2. Egy konkrét 'document.pdf' feldolgozása, a konzol némításával, de egy 'history.log' készítésével:
+2: Egy konkrét 'document.pdf' feldolgozása, a konzol némításával, de egy 'history.log' készítésével:
 
 *java -jar PdfTextExtractor.jar -mode=single -path=document.pdf -mute -logfile=history.log*
 
-\3. Rekurzívan minden PDF feldolgozása a JAR mappájában, egy automatikusan elnevezett logfájl használatával. A felülírást 
+3: Rekurzívan minden PDF feldolgozása a JAR mappájában, egy automatikusan elnevezett logfájl használatával. A felülírást 
 minden esetben meg akarjuk tenni:
 
 *java -jar PdfTextExtractor.jar -mode=all -recursive -logfile=auto -overwrite=all*
 
-\4. Reguláris kifejezéssel megadott PDF-ek feldolgozása, rekurzívan keresve, ahol azokat a PDF-eket dolgozzuk fel, amelyek nevében 
+4: Reguláris kifejezéssel megadott PDF-ek feldolgozása, rekurzívan keresve, ahol azokat a PDF-eket dolgozzuk fel, amelyek nevében 
 benne van az 'abc' szöveg. A felülírásról egyenként szeretnénk dönteni:
 
 *java -jar PdfTextExtractor.jar -mode=regex -regex=.\*abc.\* -recursive -overwrite=select*
