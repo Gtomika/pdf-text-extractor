@@ -17,8 +17,13 @@ A lehetséges argumentumokért lásd az *Argumentumok* részt.
  - **-mode**: megmondja, hogy hogyan kell kiválasztani a PDF fájlokat. Lehet 'all', ami minden PDF-et kiválaszt a jelen mappában. 
 	Lehet 'single', ami egy PDF-et fog kiválasztani (ezt a '-path' argumentumban kell átadni). Lehet 'regex', ami reguláris kifejezés alapján választ (amit a '-regex' argumentumban kell 
 	átadni). Alapértéke az 'all'.
- - **-path**: Ezzel kell megadni a PDF fájl RELATÍV útvonalát, ha a válaasztótt mód 'single' (-mode=single). Ha például a document.pdf ugyanabban a mappában van, ahol a JAR, akkor 
-	ez '-path=document.pdf' lesz. Ha például a JAR mappájában van egy 'docs' nevű mappa, és abban van a PDF, akkor ez '-path=docs/document.pdf' lesz. A '-mode' argumot már előtte meg kell adni!
+ - **-folder**: Ezzel lehet megadni, hogy az 'all' és 'regex' módok esetén melyik mappában történjen a keresés. Abszolút és relatív útvonal is lehet, ezt az információt a '-pathType'-al lehet 
+	megadni. Nem kell megadni, alapértéke a jelenlegi munkakönytár (ez leggyakrabban az, ahol a JAR található). Ha ez a mappa nem létezik, akkor létre lesz hozva.</li>
+ - **-path**: Ezzel kell megadni a PDF fájl útvonalát, ha a választótt mód 'single' (-mode=single). Abszolút és relatív útvonal is lehet, ezt az információt a '-pathType'-al lehet 
+	megadni. Ha például a document.pdf ugyanabban a mappában van, ahol a JAR, akkor 
+	ez '-path=document.pdf' lesz (relatív útvonal). Ha például a JAR mappájában van egy 'docs' nevű mappa, és abban van a PDF, akkor ez '-path=docs/document.pdf' lesz (szintén relatív). A '-mode=single' argumot már előtte meg kell adni!</li>
+ - **-pathType**: Ezzel lehet megadni, hogy a '-path' vagy '-folder' argumentumban kapott útvonalak relatív vagy abszolút útvonalak-e. Csak a '-path' vagy a '-folder' után állhat. 
+	Lehetséges értékei 'relative' és 'absolute'. Alapértelmezetten relatív.</li>
  - **-regex**: Ezzel kell megadni a JAVA reguláris kifejezést, amivel a PDF-ek kiválasztásra kerülnek, ha a mód regex (-mode=regex). Érvényes Java regex-nek kell lennie és nem tartalmazhatja a 
 	szóköz karaktert, mert akkor az új argumentumként lenne értelmezve (szóköz helyett a *\\s* írható, ami azt fogja jelenteni). 
 	Például az 'fn' kezdetű PDF fájlokat feldolgozó regex így adható meg: '-regex=fn.\*'  A '-mode' argumot már előtte meg kell adni!
@@ -45,16 +50,24 @@ az argumentumokat.
 
 *java -jar PdfTextExtractor.jar -mode=single -path=document.pdf -mute -logfile=history.log*
 
-3: Rekurzívan minden PDF feldolgozása a JAR mappájában, egy automatikusan elnevezett logfájl használatával. A felülírást 
+3: Ugyanaz mint az előző, de ezúttal a PDF-re egy abszolút útvonalon szeretnénk hivatkozni:
+
+*java -jar PdfTextExtractor.jar -mode=single -path=C:\mappa1\mappa2\document.pdf -pathType=absolute -mute -logfile=history.log*
+
+4: Rekurzívan minden PDF feldolgozása a JAR mappájában, egy automatikusan elnevezett logfájl használatával. A felülírást 
 minden esetben meg akarjuk tenni:
 
 *java -jar PdfTextExtractor.jar -mode=all -recursive -logfile=auto -overwrite=all*
 
-4: Reguláris kifejezéssel megadott PDF-ek feldolgozása, rekurzívan keresve, ahol azokat a PDF-eket dolgozzuk fel, amelyek nevében 
+5: Reguláris kifejezéssel megadott PDF-ek feldolgozása, rekurzívan keresve, ahol azokat a PDF-eket dolgozzuk fel, amelyek nevében 
 benne van az 'abc' szöveg. A felülírásról egyenként szeretnénk dönteni:
 
 *java -jar PdfTextExtractor.jar -mode=regex -regex=.\*abc.\* -recursive -overwrite=select*
 
+6: Egy abszolút útvonallal megadott mappában szeretnénk feldolgozni az összes PDF-et, rekurzívan keresve: 
+
+*java -jar PdfTextExtractor.jar -mode=all -folder=C:\mappa1\mappa2 -pathType=absolute -recursive
+
 ## Letöltés
 
-[GitHub release oldal](https://github.com/Gtomika/pdf-text-extractor/releases/download/0.2/PdfTextExtractor.jar)
+[GitHub release oldal](https://github.com/Gtomika/pdf-text-extractor/releases/download/0.3/PdfTextExtractor.jar)

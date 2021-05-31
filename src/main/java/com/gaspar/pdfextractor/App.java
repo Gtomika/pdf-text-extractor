@@ -59,6 +59,8 @@ public class App {
     		welcomeMessage += "\nA konzol némítva lett, több üzenet a végéig nem jelenik meg.";
     	}
     	logger.logUnmutable(welcomeMessage); //ez mindig kiíródik
+    	
+    	logger.log("A jelenlegi munkakönyvtár: " + CURRENT_DIRECTORY);
    
     	logger.log(arguments.toString()); //argumentumok kiírása
     	
@@ -102,16 +104,16 @@ public class App {
     	boolean recursive = arguments.isRecursive();
     	if(arguments.getMode().equals(CommandLineArguments.MODE_SINGLE)) { //egy fájl
     		
-    		String relPath = arguments.getPath();
-    		logger.log("Egy fájlos mód. A PDF fájl relatív útvonala: " + relPath);
-    		return Arrays.asList(new File("./" + relPath));
+    		String path = arguments.getPath();
+    		logger.log("Egy fájlos mód. A PDF fájl útvonala: " + path);
+    		return Arrays.asList(new File(path));
     		
     	} else if(arguments.getMode().equals(CommandLineArguments.MODE_REGEX)) { //regex mód
     		
     		logger.log("Regexnek megfelelő PDF fájlok keresése, " + (recursive ? "rekurzívan." : "nem rekurzívan."));
     		logger.log("A regex: " + arguments.getRegex());
     		String[] filter = {"pdf"};
-    		List<File> pdfFiles = (List<File>)FileUtils.listFiles(new File(CURRENT_DIRECTORY), filter, recursive);
+    		List<File> pdfFiles = (List<File>)FileUtils.listFiles(new File(arguments.getFolder()), filter, recursive);
   
     		final Pattern regex = Pattern.compile(arguments.getRegex());
     		int sizeBefore = pdfFiles.size();
@@ -128,7 +130,7 @@ public class App {
     		
     		logger.log("Minden ebben a mappában lévő PDF fájl keresése, " + (recursive ? "rekurzívan." : "nem rekurzívan."));
     		String[] filter = {"pdf"};
-    		final List<File> pdfFiles = (List<File>)FileUtils.listFiles(new File(CURRENT_DIRECTORY), filter, recursive);
+    		final List<File> pdfFiles = (List<File>)FileUtils.listFiles(new File(arguments.getFolder()), filter, recursive);
     		return pdfFiles;
     	}
     }
@@ -138,7 +140,7 @@ public class App {
 	 * included in the end of the path.
 	 * @return The path.
 	 */
-	private static String findCurrentDirectory() {
+	public static String findCurrentDirectory() {
 		String absolutePath = new File("").getAbsolutePath();
 	    return absolutePath;
 	}

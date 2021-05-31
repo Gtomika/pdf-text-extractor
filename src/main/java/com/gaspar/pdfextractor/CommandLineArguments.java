@@ -1,6 +1,7 @@
 package com.gaspar.pdfextractor;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,8 +16,13 @@ import org.apache.commons.io.FilenameUtils;
  * <li>-mode: megmondja, hogy hogyan kell kiválasztani a PDF fájlokat. Lehet 'all', ami minden talált PDF-et kiválaszt. 
  * Lehet 'single', ami egy PDF-et fog kiválasztani (ezt a '-path' argumentumban kell átadni). Lehet 'regex', ami reguláris kifejezés alapján választ (amit a '-regex' argumentumban kell 
  * átadni). Alapértéke az 'all'.</li>
- * <li>-path: Ezzel kell megadni a PDF fájl RELATÍV útvonalát, ha a válaasztótt mód 'single' (-mode=single). Ha például a document.pdf ugyanabban a mappában van, ahol a JAR, akkor 
- * ez '-path=document.pdf' lesz. Ha például a JAr mappájában van egy 'docs' nevű mappa, és abban van a PDF, akkor ez '-path=docs/document.pdf' lesz. A '-mode' argumot már előtte meg kell adni!</li>
+ * <li>-folder: Ezzel lehet megadni, hogy az 'all' és 'regex' módok esetén melyik mappában történjen a keresés. Abszolút és relatív útvonal is lehet, ezt az információt a '-pathType'-al lehet 
+ * megadni. Nem kell megadni, alapértéke a jelenlegi munkakönytár (ez leggyakrabban az, ahol a JAR található).</li>
+ * <li>-path: Ezzel kell megadni a PDF fájl útvonalát, ha a választótt mód 'single' (-mode=single). Abszolút és relatív útvonal is lehet, ezt az információt a '-pathType'-al lehet 
+ * megadni. Ha például a document.pdf ugyanabban a mappában van, ahol a JAR, akkor 
+ * ez '-path=document.pdf' lesz (relatív útvonal). Ha például a JAR mappájában van egy 'docs' nevű mappa, és abban van a PDF, akkor ez '-path=docs/document.pdf' lesz (szintén relatív). A '-mode=single' argumot már előtte meg kell adni!</li>
+ * <li>-pathType: Ezzel lehet megadni, hogy a '-path' vagy '-folder' argumentumban kapott útvonalak relatív vagy abszolút útvonalak-e. Csak a '-path' vagy a '-folder' után állhat. 
+ * Lehetséges értékei 'relative' és 'absolute'. Alapértelmezetten relatív.</li>
  * <li>-regex: Ezzel kell megadni a JAVA reguláris kifejezést, amivel a PDF-ek kiválasztásra kerülnek, ha a mód regex (-mode=regex). Érvényes Java regex-nek kell lennie és nem tartalmazhatja a 
  * szóköz karaktert, mert akkor az új argumentumként lenne értelmezve (szóköz helyett a {@code \\s} írható, ami azt fogja jelenteni). 
  * Például az 'fn' kezdetű PDF fájlokat feldolgozó regex így adható meg: '-regex=fn.*'  A '-mode' argumot már előtte meg kell adni!</li>
@@ -80,8 +86,10 @@ public class CommandLineArguments {
 	private void parseArgument(String arg) throws IllegalArgumentException {
 		if(arg.startsWith(MODE + "=")) { //mód
 			parseMode(arg);
-		} else if(arg.startsWith(PATH)) { //ez a path specifikáció a '-mode=single'-hez
+		} else if(arg.startsWith(PATH) && !arg.startsWith(PATH_TYPE)) { //ez a path specifikáció a '-mode=single'-hez
 			parsePath(arg);
+ 		} else if(arg.startsWith(FOLDER)) {
+ 			parseFolder(arg);
  		} else if(arg.startsWith(REGEX)) { //ez a regex specifikáció a '-mode=regex'-hez
  			parseRegex(arg);
  		} else if(arg.startsWith(OVERWRITE)) { //ez a felülírási szabály
@@ -100,6 +108,10 @@ public class CommandLineArguments {
  			}
  		} else if(arg.startsWith(LOG)) { //logfile argumentum
  			parseLogfile(arg);
+ 		} else if(arg.startsWith(PATH_TYPE)) { //path típus
+ 			parsePathType(arg);
+ 		} else { //ismeretlen
+ 			throw new IllegalArgumentException("Ismeretlen argumentum: " + arg);
  		}
 	}
 	
@@ -123,6 +135,35 @@ public class CommandLineArguments {
 		if(!arguments.containsKey(OVERWRITE)) { //ha nincs overwrite, akkor az alap a 'none'
 			arguments.put(OVERWRITE, OVERWRITE_NONE);
 		}
+		if(!arguments.containsKey(PATH_TYPE)) { //path type alapértelmezettje relatív
+			arguments.put(PATH_TYPE, PATH_TYPE_REL);
+		}
+		//a folder alapértéke a jelen munkakönytár
+		if(!arguments.containsKey(FOLDER)) {
+			String pathType = arguments.get(PATH_TYPE);
+			arguments.put(FOLDER, pathType.equals(PATH_TYPE_REL) ? "." : App.findCurrentDirectory());	
+		}
+		File f = new File(arguments.get(FOLDER));
+		if(arguments.get(PATH_TYPE).equals(PATH_TYPE_REL) && f.isAbsolute()) {
+			throw new IllegalArgumentException("Az általad megadott '-folder' útvonal abszolút. Ilyenkor használd a '-pathType=absolute' argumentumot!");
+		} 
+		if(arguments.get(PATH_TYPE).equals(PATH_TYPE_ABS) && !f.isAbsolute()) {
+			throw new IllegalArgumentException("Abszolút útvonal típust adtál meg a '-pathType' argumentumban, de az átadott '-folder' útvonal relatív! Ha nem írod ki a '-pathType'-ot, akkor relatívnak fog számítani.");
+		}
+		//path/folder ellenőrzés, ha van: csak itt állhat rendelkezésre biztosan a path/folder és pathType (ha van path vagy folder)
+		if(arguments.containsKey(PATH)) {
+			File f1 = new File(arguments.get(PATH));
+			if(arguments.get(PATH_TYPE).equals(PATH_TYPE_REL) && f1.isAbsolute()) {
+				throw new IllegalArgumentException("Az általad megadott fájl útvonal abszolút. Ilyenkor használd a '-pathType=absolute' argumentumot!");
+			} 
+			if(arguments.get(PATH_TYPE).equals(PATH_TYPE_ABS) && !f1.isAbsolute()) {
+				throw new IllegalArgumentException("Abszolút útvonal típust adtál meg a '-pathType' argumentumban, de az átadott útvonal relatív! Ha nem írod ki a '-pathType'-ot, akkor relatívnak fog számítani.");
+			}
+			if(!f1.exists()) {
+				throw new IllegalArgumentException("A '-path'-al megadott fájlnak léteznie kell!");
+			}
+		}
+		
 		//mute, log és recursive-al itt nem kell törődni, mert azok alapból kikapcsoltak
 	}
 	
@@ -164,6 +205,34 @@ public class CommandLineArguments {
 	}
 	
 	/**
+	 * Kiértékeli a '-folder' argumentumot.
+	 * @param arg Az argumentum.
+	 * @throws IllegalArgumentException Ha hibás az argumentum.
+	 */
+	private void parseFolder(String arg) throws IllegalArgumentException {
+		if(arguments.containsKey(FOLDER)) {
+			throw new IllegalArgumentException("Több megadott '-folder', ami nem megendgedett!");
+		}
+		if(!arguments.containsKey(MODE)) {
+			throw new IllegalArgumentException("A '-mode' argumentumnak a '-folder' előtt kell lennie!");
+		} else if(!arguments.get(MODE).equals(MODE_ALL) && !arguments.get(MODE).equals(MODE_REGEX)) {
+			throw new IllegalArgumentException("'-folder' esetén csak az 'all' és 'regex' módok megengedettek!");
+		}
+		//van megfelelő mód
+		String[] split = arg.split("=");
+		File folder = new File(split[1]);
+		if(!folder.isDirectory()) {
+			throw new IllegalArgumentException("A megadott '-folder' értéknek egy mappára kell mutatnia, de ez egy fájlra mutat: " + folder.getAbsolutePath());
+		}
+		if(!folder.exists()) {
+			throw new IllegalArgumentException("A '-folder'-ben megadott mappának léteznie kell, enélkül biztosan nem lesz benne PDF! Ez nem létezik: " + folder.getAbsolutePath());
+		}
+ 		String folderName = split[1];
+		if(!folderName.endsWith(File.pathSeparator)) folderName += File.separator;
+		arguments.put(FOLDER, folderName);
+	}
+	
+	/**
 	 * Kiértékeli a '-path' argumentumot.
 	 * @param arg Az argumentum.
 	 * @throws IllegalArgumentException Ha hibás az argumentum.
@@ -175,15 +244,12 @@ public class CommandLineArguments {
 			throw new IllegalArgumentException("'-path' esetén csak az egyszeres mód megengedett: '-mode=single'!");
 		}
 		String[] split = arg.split("=");
-		//rendben, van mód és az single. értelmes-e ez a path?
-		File f = new File("./" + split[1]);
-		if(!f.exists()) {
-			throw new IllegalArgumentException("A '-path'-al megadott fájlnak léteznie kell!");
-		}
-		if(!FilenameUtils.getExtension(split[1]).equals("pdf")) {
+		//rendben, van mód és az single. az, hogy értelmes-e a path az az applyDefaultValues bab van értelmezve
+		String fileName = Paths.get(split[1]).getFileName().toString();
+		if(!FilenameUtils.getExtension(fileName).equals("pdf")) {
 			throw new IllegalArgumentException("A '-path'-al megadott fájlnak pdf fájlnak kell lennie!");
 		}
-		//egy létező, PDF fájlról van szó
+		//egy PDF fájlról van szó
 		if(!arguments.containsKey(PATH)) {
 			arguments.put(PATH, split[1]);
 		} else {
@@ -223,34 +289,47 @@ public class CommandLineArguments {
 	 * @throws IllegalArgumentException Ha hibás az argumentum.
 	 */
 	private void parseOverwrite(String arg) throws IllegalArgumentException {
+		if(arguments.containsKey(OVERWRITE)) {
+			//már van megadott overwrite
+			throw new IllegalArgumentException("Több megadott '-overwrite', ami nem megengedett!");
+		}
 		String[] split = arg.split("=");
 		if(split[1].equals(OVERWRITE_ALL)) {
 			//minden felülírása
-			if(!arguments.containsKey(OVERWRITE)) {
-				arguments.put(OVERWRITE, OVERWRITE_ALL);
-			} else {
-				//már van megadott overwrite
-				throw new IllegalArgumentException("Több megadott '-overwrite', ami nem megengedett!");
-			}
+			arguments.put(OVERWRITE, OVERWRITE_ALL);
 		} else if(split[1].equals(OVERWRITE_NONE)) {
 			//semmilyen felülírás
-			if(!arguments.containsKey(OVERWRITE)) {
-				arguments.put(OVERWRITE, OVERWRITE_NONE);
-			} else {
-				//már van megadott mód
-				throw new IllegalArgumentException("Több megadott '-overwrite', ami nem megengedett!");
-			}
+			arguments.put(OVERWRITE, OVERWRITE_NONE);
 		} else if(split[1].equals(OVERWRITE_SELECT)) {
 			//regex alapján
-			if(!arguments.containsKey(OVERWRITE)) {
-				arguments.put(OVERWRITE, OVERWRITE_SELECT);
-			} else {
-				//már van megadott mód
-				throw new IllegalArgumentException("Több megadott '-overwrite', ami nem megengedett!");
-			}
+			arguments.put(OVERWRITE, OVERWRITE_SELECT);
 		} else {
 			String[] valids = { OVERWRITE_ALL, OVERWRITE_ALL, OVERWRITE_SELECT };
 			throw new IllegalArgumentException("Érvénytelen '-overwrite' érték: " + split[1] + "! Csak ezek egyike lehet: " + Arrays.toString(valids));
+		}
+	}
+	
+	/**
+	 * Kiértékeli az '-pathType' argumentumot.
+	 * @param arg Az argumentum.
+	 * @throws IllegalArgumentException Ha hibás az argumentum.
+	 */
+	private void parsePathType(String arg) {
+		String[] split = arg.split("=");
+		if(arguments.containsKey(PATH_TYPE)) {
+			throw new IllegalArgumentException("Több megadott '-pathType', ami nem megengedett!");
+		}
+		if(!arguments.containsKey(PATH) && !arguments.containsKey(FOLDER)) {
+			throw new IllegalArgumentException("A '-pathType' előtt szerepelnie kell a '-path' vagy '-folder' argumentumnak!");
+		}
+		//van path/folder és nincs még path type
+		if(split[1].equals(PATH_TYPE_REL)) {
+			arguments.put(PATH_TYPE, PATH_TYPE_REL);
+		} else if(split[1].equals(PATH_TYPE_ABS)) {
+			arguments.put(PATH_TYPE, PATH_TYPE_ABS);
+		} else {
+			String[] valids = { PATH_TYPE_REL, PATH_TYPE_ABS };
+			throw new IllegalArgumentException("Érvénytelen '-pathType' érték: " + split[1] + "! Csak ezek egyike lehet: " + Arrays.toString(valids));
 		}
 	}
 	
@@ -313,6 +392,15 @@ public class CommandLineArguments {
 		return arguments.get(LOG);
 	}
 	
+	//null lesz ha nincs path
+	public String getPathType() {
+		return arguments.get(PATH_TYPE);
+	}
+	
+	public String getFolder() {
+		return arguments.get(FOLDER);
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder b = new StringBuilder();
@@ -323,12 +411,31 @@ public class CommandLineArguments {
 		String mode = getMode();
 		if(mode.equals(MODE_ALL)) {
 			b.append("Minden PDF fájl.\n");
+			String folderName = getFolder();
+			b.append("A mappa, amiben keresek: " + (folderName.equals(".") ? " jelenlegi munkakönyvtár" : folderName));
+			if(getPathType().equals(PATH_TYPE_REL)) {
+				b.append(" (RELATÍV útvonal)\n");
+			} else {
+				b.append(" (ABSZOLÚT útvonal)\n");
+			}
 		} else if(mode.equals(MODE_SINGLE)) {
 			b.append("Egy konkrét PDF fájl.\n");
-			b.append("A PDF fájl RELATÍV útvonala (-path): " + getPath() + "\n");
+			b.append("A PDF fájl útvonala (-path): " + getPath());
+			if(getPathType().equals(PATH_TYPE_REL)) {
+				b.append(" (RELATÍV útvonal)\n");
+			} else {
+				b.append(" (ABSZOLÚT útvonal)\n");
+			}
 		} else if(mode.equals(MODE_REGEX)) {
 			b.append("Reguláris kifejezésnek megfelelő PDF fájlok.\n");
 			b.append("A reguláris kifejezés (-regex): " + getRegex() + "\n");
+			String folderName = getFolder();
+			b.append("A mappa, amiben keresek: " + (folderName.equals(".") ? " jelenlegi munkakönyvtár" : folderName));
+			if(getPathType().equals(PATH_TYPE_REL)) {
+				b.append(" (RELATÍV útvonal)\n");
+			} else {
+				b.append(" (ABSZOLÚT útvonal)\n");
+			}
 		}
 		//rekurzív?
 		if(isRecursive()) {
@@ -376,7 +483,15 @@ public class CommandLineArguments {
 	
 	public static final String MODE_REGEX = "regex";
 	
+	private static final String FOLDER = "-folder";
+	
 	private static final String PATH = "-path";
+	
+	private static final String PATH_TYPE = "-pathType";
+	
+	private static final String PATH_TYPE_REL = "relative";
+	
+	private static final String PATH_TYPE_ABS = "absolute";
 	
 	private static final String REGEX = "-regex";
 	
