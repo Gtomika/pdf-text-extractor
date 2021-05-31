@@ -57,4 +57,4 @@ benne van az 'abc' szöveg. A felülírásról egyenként szeretnénk dönteni:
 
 ## Letöltés
 
-[GitHub release oldal](https://github.com/Gtomika/pdf-text-extractor/releases/download/0.1/PdfTextExtractor.jar)
+[GitHub release oldal](https://github.com/Gtomika/pdf-text-extractor/releases/download/0.2/PdfTextExtractor.jar)
